@@ -1,0 +1,9 @@
+<resources>
+    <color name="firefox_navy">#0F3460</color>
+    <color name="firefox_orange">#E8630A</color>
+    <color name="bg_dark">#10172A</color>
+    <color name="address_bg">#1A2A4A</color>
+    <color name="text_primary">#F0F4F8</color>
+    <color name="icon_color">#C5D3E8</color>
+    <color name="secure_green">#30C47A</color>
+</resources>

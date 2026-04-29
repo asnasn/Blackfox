@@ -49,11 +49,13 @@ include ':annotations', ':messaging_example', ':port_messaging_example'
 include ':geckoview'
 include ':exoplayer2'
 include ':android-components'
+include ':firefox-bb10'
 
 project(':annotations').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/annotations")
 project(':geckoview').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/geckoview")
 project(':exoplayer2').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/exoplayer2")
 project(':android-components').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/android-components")
+project(':firefox-bb10').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/firefox-bb10")
 
 if (!gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT || gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT == "fenix") {
     include ':fenix'
