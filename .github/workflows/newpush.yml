@@ -36,6 +36,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0"
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -51,42 +53,42 @@ jobs:
         run: |
           mkdir -p objdir
           cat > ./mach << 'MACHEOF'
-#!/usr/bin/env python3
-import sys
-import json
-import os
+          #!/usr/bin/env python3
+          import sys
+          import json
+          import os
 
-if "environment" in sys.argv:
-    print(json.dumps({
-        "topsrcdir": os.getcwd(),
-        "topobjdir": os.path.join(os.getcwd(), "objdir"),
-        "mozconfig": {
-            "env": {
-                "unmodified": {}
-            }
-        },
-        "substs": {
-            "MOZ_BUILD_APP": "mobile/android",
-            "MOZ_APP_VERSION": "120.0a1",
-            "MOZ_UPDATE_CHANNEL": "default",
-            "MOZCONFIG": "dummy",
-            "ANDROID_SDK_ROOT": os.environ.get("ANDROID_HOME", "."),
-            "ANDROID_BUILD_TOOLS_VERSION": "34.0.0",
-            "ENABLE_MOZSEARCH_PLUGIN": False,
-            "DOWNLOAD_ALL_GRADLE_DEPENDENCIES": False,
-            "GRADLE_MAVEN_REPOSITORIES": [
-                "https://maven.google.com",
-                "https://repo.maven.apache.org/maven2",
-                "https://plugins.gradle.org/m2/",
-                "https://maven.mozilla.org/maven2/"
-            ],
-            "ALLOW_INSECURE_GRADLE_REPOSITORIES": False,
-            "PYTHON3": "python3"
-        }
-    }), end='')
-    sys.exit(0)
-sys.exit(0)
-MACHEOF
+          if "environment" in sys.argv:
+              print(json.dumps({
+                  "topsrcdir": os.getcwd(),
+                  "topobjdir": os.path.join(os.getcwd(), "objdir"),
+                  "mozconfig": {
+                      "env": {
+                          "unmodified": {}
+                      }
+                  },
+                  "substs": {
+                      "MOZ_BUILD_APP": "mobile/android",
+                      "MOZ_APP_VERSION": "120.0a1",
+                      "MOZ_UPDATE_CHANNEL": "default",
+                      "MOZCONFIG": "dummy",
+                      "ANDROID_SDK_ROOT": os.environ.get("ANDROID_HOME", "."),
+                      "ANDROID_BUILD_TOOLS_VERSION": "34.0.0",
+                      "ENABLE_MOZSEARCH_PLUGIN": False,
+                      "DOWNLOAD_ALL_GRADLE_DEPENDENCIES": False,
+                      "GRADLE_MAVEN_REPOSITORIES": [
+                          "https://maven.google.com",
+                          "https://repo.maven.apache.org/maven2",
+                          "https://plugins.gradle.org/m2/",
+                          "https://maven.mozilla.org/maven2/"
+                      ],
+                      "ALLOW_INSECURE_GRADLE_REPOSITORIES": False,
+                      "PYTHON3": "python3"
+                  }
+              }), end='')
+              sys.exit(0)
+          sys.exit(0)
+          MACHEOF
           chmod +x ./mach
 
           echo '{"mozconfig": {"env": {"unmodified": {}}}}' > objdir/.mozconfig.json
@@ -97,27 +99,39 @@ MACHEOF
       - name: Build Release APK
         run: |
           export GRADLE_INVOKED_WITHIN_MACH_BUILD=1
+          export PATH=$ANDROID_HOME/build-tools/35.0.0:$PATH
           ./gradlew :firefox-bb10:assembleRelease
 
       - name: Verify APK exists
         run: |
           find objdir/gradle/build -name "*.apk" | grep "release"
 
+      - name: Add build-tools to PATH
+        run: echo "$ANDROID_HOME/build-tools/35.0.0" >> $GITHUB_PATH
+
       - name: Sign APK
-        uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af016dc794b6407
-        id: sign_app
-        with:
-          releaseDirectory: objdir/gradle/build/mobile/android/firefox-bb10/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          BUILD_TOOLS_VERSION="35.0.0"
+          APK_PATH=$(find objdir/gradle/build -name "*-release-unsigned.apk" | head -n 1)
+          SIGNED_APK_PATH="${APK_PATH%-unsigned.apk}-signed.apk"
+
+          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 -d > signingKey.jks
+
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/zipalign -v 4 "$APK_PATH" aligned.apk
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner sign --ks signingKey.jks \
+            --ks-key-alias "${{ secrets.SIGNING_KEY_ALIAS }}" \
+            --ks-pass "pass:${{ secrets.SIGNING_STORE_PASSWORD }}" \
+            --key-pass "pass:${{ secrets.SIGNING_KEY_PASSWORD }}" \
+            --out "$SIGNED_APK_PATH" aligned.apk
+
+          echo "SIGNED_APK_PATH=$SIGNED_APK_PATH" >> $GITHUB_ENV
+          rm signingKey.jks aligned.apk
 
       - name: Create Release
         if: github.event_name != 'pull_request'
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0ab8aa5b2ef267dfda
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
-          files: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          files: ${{ env.SIGNED_APK_PATH }}
           tag_name: build-${{ github.run_number }}
           name: Release ${{ github.run_number }}
           draft: false
