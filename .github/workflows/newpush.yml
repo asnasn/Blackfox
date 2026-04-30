@@ -51,42 +51,42 @@ jobs:
         run: |
           mkdir -p objdir
           cat > ./mach << 'MACHEOF'
-#!/usr/bin/env python3
-import sys
-import json
-import os
+          #!/usr/bin/env python3
+          import sys
+          import json
+          import os
 
-if "environment" in sys.argv:
-    print(json.dumps({
-        "topsrcdir": os.getcwd(),
-        "topobjdir": os.path.join(os.getcwd(), "objdir"),
-        "mozconfig": {
-            "env": {
-                "unmodified": {}
-            }
-        },
-        "substs": {
-            "MOZ_BUILD_APP": "mobile/android",
-            "MOZ_APP_VERSION": "120.0a1",
-            "MOZ_UPDATE_CHANNEL": "default",
-            "MOZCONFIG": "dummy",
-            "ANDROID_SDK_ROOT": os.environ.get("ANDROID_HOME", "."),
-            "ANDROID_BUILD_TOOLS_VERSION": "34.0.0",
-            "ENABLE_MOZSEARCH_PLUGIN": False,
-            "DOWNLOAD_ALL_GRADLE_DEPENDENCIES": False,
-            "GRADLE_MAVEN_REPOSITORIES": [
-                "https://maven.google.com",
-                "https://repo.maven.apache.org/maven2",
-                "https://plugins.gradle.org/m2/",
-                "https://maven.mozilla.org/maven2/"
-            ],
-            "ALLOW_INSECURE_GRADLE_REPOSITORIES": False,
-            "PYTHON3": "python3"
-        }
-    }), end='')
-    sys.exit(0)
-sys.exit(0)
-MACHEOF
+          if "environment" in sys.argv:
+              print(json.dumps({
+                  "topsrcdir": os.getcwd(),
+                  "topobjdir": os.path.join(os.getcwd(), "objdir"),
+                  "mozconfig": {
+                      "env": {
+                          "unmodified": {}
+                      }
+                  },
+                  "substs": {
+                      "MOZ_BUILD_APP": "mobile/android",
+                      "MOZ_APP_VERSION": "120.0a1",
+                      "MOZ_UPDATE_CHANNEL": "default",
+                      "MOZCONFIG": "dummy",
+                      "ANDROID_SDK_ROOT": os.environ.get("ANDROID_HOME", "."),
+                      "ANDROID_BUILD_TOOLS_VERSION": "34.0.0",
+                      "ENABLE_MOZSEARCH_PLUGIN": False,
+                      "DOWNLOAD_ALL_GRADLE_DEPENDENCIES": False,
+                      "GRADLE_MAVEN_REPOSITORIES": [
+                          "https://maven.google.com",
+                          "https://repo.maven.apache.org/maven2",
+                          "https://plugins.gradle.org/m2/",
+                          "https://maven.mozilla.org/maven2/"
+                      ],
+                      "ALLOW_INSECURE_GRADLE_REPOSITORIES": False,
+                      "PYTHON3": "python3"
+                  }
+              }), end='')
+              sys.exit(0)
+          sys.exit(0)
+          MACHEOF
           chmod +x ./mach
 
           echo '{"mozconfig": {"env": {"unmodified": {}}}}' > objdir/.mozconfig.json
