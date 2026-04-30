@@ -5,6 +5,10 @@ on:
     branches:
       - main
       - master
+  pull_request:
+    branches:
+      - main
+      - master
   workflow_dispatch:
     inputs:
       prerelease:
@@ -32,8 +36,6 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 11076708
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -55,8 +57,6 @@ import json
 import os
 
 if "environment" in sys.argv:
-    # Return a JSON that satisfies mobile/android/gradle/mozconfig.gradle
-    # and satisfies build.gradle's evaluation (AppVersion, etc.)
     print(json.dumps({
         "topsrcdir": os.getcwd(),
         "topobjdir": os.path.join(os.getcwd(), "objdir"),
@@ -89,35 +89,32 @@ sys.exit(0)
 MACHEOF
           chmod +x ./mach
 
-          # Create mandatory files to satisfy build.gradle evaluation
           echo '{"mozconfig": {"env": {"unmodified": {}}}}' > objdir/.mozconfig.json
           echo '#define MOZ_BUILDID 20260430000000' > objdir/buildid.h
           touch objdir/source-repo.h
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Build Release APK
         run: |
-          # Set flag to skip Gecko compilation and other Mozilla-specific gradle logic
           export GRADLE_INVOKED_WITHIN_MACH_BUILD=1
           ./gradlew :firefox-bb10:assembleRelease
 
       - name: Verify APK exists
         run: |
-          # Find the APK in the project's build directory (not the top-level objdir)
-          # The README says it's in objdir/gradle/build/mobile/android/firefox-bb10/outputs/apk/release/
-          # but let's be flexible
-          find . -name "*.apk" | grep "release"
+          find objdir/gradle/build -name "*.apk" | grep "release"
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af016dc794b6407
         id: sign_app
         with:
-          releaseDirectory: mobile/android/firefox-bb10/build/outputs/apk/release
+          releaseDirectory: objdir/gradle/build/mobile/android/firefox-bb10/outputs/apk/release
           signingKeyBase64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
           alias: ${{ secrets.SIGNING_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
           keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - name: Create Release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0ab8aa5b2ef267dfda
         with:
           files: ${{ steps.sign_app.outputs.signedReleaseFile }}
