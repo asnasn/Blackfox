@@ -36,6 +36,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 build-tools;29.0.3"
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -97,11 +99,15 @@ jobs:
       - name: Build Release APK
         run: |
           export GRADLE_INVOKED_WITHIN_MACH_BUILD=1
+          export PATH=$ANDROID_HOME/build-tools/35.0.0:$ANDROID_HOME/build-tools/29.0.3:$PATH
           ./gradlew :firefox-bb10:assembleRelease
 
       - name: Verify APK exists
         run: |
           find objdir/gradle/build -name "*.apk" | grep "release"
+
+      - name: Add build-tools to PATH
+        run: echo "$ANDROID_HOME/build-tools/35.0.0:$ANDROID_HOME/build-tools/29.0.3" >> $GITHUB_PATH
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@dbeba6b98a60b0fd540c02443c7f428cdedf0e7f
