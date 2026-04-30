@@ -445,7 +445,7 @@ subprojects { project ->
     afterEvaluate {
         // Our vendored copy of exoplayer2 hits build failures when targeting Java 17.
         // Given our intent to remove it in the near future, just leave it alone here.
-        if (it.hasProperty('android') && projectName != 'exoplayer2') {
+        if (it.hasProperty('android') && projectName != 'exoplayer2' && projectName != 'firefox-bb10') {
             kotlin {
                 jvmToolchain(config.jvmTargetCompatibility)
             }
